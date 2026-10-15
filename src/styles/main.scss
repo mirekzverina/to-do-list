@@ -1,0 +1,22 @@
+@use './reset';
+@use './variables' as *;
+
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color: $text-primary;
+  background: $bg-primary;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-width: 320px;
+}
+
+button,
+input {
+  font: inherit;
+}
