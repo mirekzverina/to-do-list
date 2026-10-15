@@ -4,6 +4,8 @@ An interactive To-Do List built as a frontend showcase project with Vue 3, TypeS
 
 The application combines drag-and-drop task management, smooth animations and a responsive glassmorphism interface in a modern Kanban-style layout.
 
+![To-Do List Preview](./public/social-preview.png)
+
 ## Live Demo
 
 https://mirekzverina-to-do-list.netlify.app/
