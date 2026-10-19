@@ -2,21 +2,23 @@
 @use './variables' as *;
 
 :root {
-  font-family: Inter, system-ui, sans-serif;
-  color: $text-primary;
-  background: $bg-primary;
+    font-family: Inter, system-ui, sans-serif;
+    color: $text-primary;
+    background: $bg-primary;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
-
+#nl-badge-frame {
+    display: none !important;
+}
 body {
-  min-width: 320px;
+    min-width: 320px;
 }
 
 button,
 input {
-  font: inherit;
+    font: inherit;
 }
