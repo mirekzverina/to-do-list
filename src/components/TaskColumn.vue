@@ -190,7 +190,7 @@ const icons = {
                         title="Clear all tasks"
                         @click="clearColumn"
                     >
-                        <Trash2 :size="16" :stroke-width="2" />
+                        <Trash2 :size="14" :stroke-width="2" />
                     </button>
                 </div>
             </div>
