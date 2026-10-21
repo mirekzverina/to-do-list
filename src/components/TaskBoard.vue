@@ -82,7 +82,6 @@ const isResizing = ref(false);
 const boardRef = ref<HTMLElement | null>(null);
 
 let startY = 0;
-let startHeight = 0;
 let startBottom = 0;
 
 function startResize(event: PointerEvent) {
@@ -94,7 +93,6 @@ function startResize(event: PointerEvent) {
 
     isResizing.value = true;
     startY = event.clientY;
-    startHeight = boardHeight.value;
 
     document.body.style.cursor = 'pointer';
 
