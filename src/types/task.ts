@@ -1,6 +1,11 @@
 export type TaskStatus = 'open' | 'progress' | 'done';
 
 export type TaskCategory =
+    | 'general'
+    | 'blue'
+    | 'mint'
+    | 'purple'
+    | 'coral'
     | 'design'
     | 'development'
     | 'content'

@@ -3,8 +3,8 @@ let isDragging = false;
 </script>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue';
-import { Lightbulb, Activity, CircleCheck } from 'lucide-vue-next';
+import { computed, nextTick, ref, watch, onUnmounted } from 'vue';
+import { Lightbulb, Activity, CircleCheck, Trash2 } from 'lucide-vue-next';
 import { VueDraggable } from 'vue-draggable-plus';
 import TaskCard from './TaskCard.vue';
 
@@ -14,6 +14,25 @@ const props = defineProps<{
     column: TaskColumnConfig;
     tasks: Task[];
 }>();
+
+const isClearing = ref(false);
+
+let clearTimer: ReturnType<typeof setTimeout> | undefined;
+
+function clearColumn() {
+    if (isClearing.value || columnTasks.value.length === 0) return;
+
+    isClearing.value = true;
+
+    clearTimer = setTimeout(() => {
+        emit('clear-column', props.column.id);
+        isClearing.value = false;
+    }, 250);
+}
+
+onUnmounted(() => {
+    clearTimeout(clearTimer);
+});
 
 const emit = defineEmits<{
     (
@@ -25,6 +44,7 @@ const emit = defineEmits<{
 
     (event: 'delete-task', taskId: string): void;
     (event: 'edit-task', taskId: string, title: string): void;
+    (event: 'clear-column', status: Task['status']): void;
 }>();
 
 const columnTasks = computed(() =>
@@ -157,9 +177,25 @@ const icons = {
 
                 <h2>{{ column.title }}</h2>
 
-                <span class="task-column__count">
-                    {{ columnTasks.length }}
-                </span>
+                <button
+                    type="button"
+                    class="task-column__count"
+                    :disabled="columnTasks.length === 0 || isClearing"
+                    :aria-label="`Delete all tasks in ${column.title}`"
+                    title="Delete all tasks"
+                    @click="clearColumn"
+                >
+                    <span class="task-column__count-number">
+                        {{ columnTasks.length }}
+                    </span>
+
+                    <Trash2
+                        class="task-column__count-trash"
+                        :size="13"
+                        :stroke-width="2"
+                        aria-hidden="true"
+                    />
+                </button>
             </div>
 
             <component
@@ -175,7 +211,6 @@ const icons = {
         </header>
 
         <VueDraggable
-            ref="tasksContainer"
             :model-value="columnTasks"
             class="task-column__tasks"
             :data-status="column.id"
@@ -205,6 +240,7 @@ const icons = {
                 v-for="task in columnTasks"
                 :key="task.id"
                 :task="task"
+                :is-column-clearing="isClearing"
                 @delete-task="emit('delete-task', $event)"
                 @edit-task="(taskId, title) => emit('edit-task', taskId, title)"
             />
@@ -389,15 +425,6 @@ const icons = {
         white-space: nowrap;
     }
 
-    &__count {
-        padding: 3px 8px;
-        border-radius: 20px;
-
-        background: rgb(255 255 255 / 9%);
-        color: #d0dceb;
-        font-size: 11px;
-    }
-
     &__icon {
         position: absolute;
         top: 0;
@@ -452,7 +479,73 @@ const icons = {
             background: rgb(var(--accent-rgb) / 85%);
         }
     }
+
+    &__count {
+        position: relative;
+        display: grid;
+        place-items: center;
+
+        min-width: 26px;
+        height: 26px;
+        padding: 0 7px;
+
+        border: 0;
+        border-radius: 20px;
+
+        background: rgb(255 255 255 / 9%);
+        color: #d0dceb;
+
+        font-family: inherit;
+        font-size: 11px;
+        line-height: 1;
+
+        cursor: pointer;
+
+        transition:
+            background 200ms ease,
+            color 200ms ease,
+            box-shadow 200ms ease;
+
+        &-number,
+        &-trash {
+            grid-area: 1 / 1;
+            transition:
+                opacity 180ms ease,
+                transform 180ms ease;
+        }
+
+        &-trash {
+            opacity: 0;
+            color: #ff8792;
+            transform: scale(0.7);
+        }
+
+        &:not(:disabled):is(:hover, :focus-visible) {
+            background: rgb(255 85 105 / 17%);
+            box-shadow: 0 0 12px rgb(255 85 105 / 12%);
+
+            .task-column__count-number {
+                opacity: 0;
+                transform: scale(0.7);
+            }
+
+            .task-column__count-trash {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        &:focus-visible {
+            outline: 2px solid #ff8792;
+            outline-offset: 3px;
+        }
+
+        &:disabled {
+            cursor: default;
+        }
+    }
 }
+
 @media (max-width: 768px) {
     .task-column {
         &__tasks {

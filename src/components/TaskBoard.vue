@@ -1,16 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import {
     Plus,
     ArrowRight,
     Database,
     Sparkle,
-    Code2,
-    FileText,
-    Palette,
-    Target,
-    Settings2,
     ListTodo,
+    Check,
 } from 'lucide-vue-next';
 
 import TaskColumn from './TaskColumn.vue';
@@ -23,12 +19,16 @@ const STORAGE_KEY = 'kanban-tasks-v1';
 const validStatuses = ['open', 'progress', 'done'] as const;
 
 const validCategories: TaskCategory[] = [
+    'general',
+    'blue',
+    'mint',
+    'purple',
+    'coral',
     'design',
     'development',
     'content',
     'planning',
     'configuration',
-    'general',
 ];
 
 function isValidTask(value: unknown): value is Task {
@@ -76,6 +76,12 @@ function loadTasks(): Task[] {
         return structuredClone(defaultTasks);
     }
 }
+
+function clearColumn(status: Task['status']) {
+    tasks.value = tasks.value.filter((task) => task.status !== status);
+}
+
+const taskInputRef = ref<HTMLInputElement | null>(null);
 
 const boardHeight = ref(550);
 const isResizing = ref(false);
@@ -172,6 +178,14 @@ function handleOutsideClick(event: PointerEvent) {
     }
 }
 
+function openCategoryPicker() {
+    isCategoryPickerOpen.value = true;
+}
+
+function closeCategoryPicker() {
+    isCategoryPickerOpen.value = false;
+}
+
 onMounted(() => {
     document.addEventListener('pointerdown', handleOutsideClick);
 });
@@ -181,16 +195,14 @@ onUnmounted(() => {
 });
 
 const categories = [
-    { id: 'design', label: 'UI/UX', icon: Palette },
-    { id: 'development', label: 'Development', icon: Code2 },
-    { id: 'content', label: 'Content', icon: FileText },
-    { id: 'planning', label: 'Planning', icon: Target },
-    { id: 'configuration', label: 'Configuration', icon: Settings2 },
-    { id: 'general', label: 'General', icon: ListTodo },
+    { id: 'general', label: 'General' },
+    { id: 'coral', label: 'High priority' },
+    { id: 'purple', label: 'Medium priority' },
+    { id: 'mint', label: 'Low priority' },
+    { id: 'blue', label: 'Info' },
 ] satisfies {
     id: TaskCategory;
     label: string;
-    icon: typeof Palette;
 }[];
 
 const selectedCategoryData = computed(() =>
@@ -215,12 +227,15 @@ const columns: TaskColumnConfig[] = [
     },
 ];
 
-function selectCategory(category: TaskCategory) {
+async function selectCategory(category: TaskCategory) {
     selectedCategory.value = category;
     isCategoryPickerOpen.value = false;
+
+    await nextTick();
+    taskInputRef.value?.focus();
 }
 
-function addTask() {
+async function addTask() {
     const title = newTask.value.trim();
 
     if (!title) return;
@@ -242,6 +257,9 @@ function addTask() {
     newTask.value = '';
     selectedCategory.value = null;
     isCategoryPickerOpen.value = false;
+
+    await nextTick();
+    taskInputRef.value?.focus();
 }
 
 function moveTask(
@@ -304,49 +322,84 @@ function deleteTask(taskId: string) {
         :style="{ height: `${boardHeight}px` }"
     >
         <form class="task-board__input" @submit.prevent="addTask">
-            <div ref="categoryWrapper" class="task-board__category-wrapper">
+            <div
+                ref="categoryWrapper"
+                class="task-board__category-wrapper"
+                @mouseenter="openCategoryPicker"
+                @mouseleave="closeCategoryPicker"
+            >
                 <button
                     type="button"
                     class="task-board__plus"
-                    :class="{ 'task-board__plus--selected': selectedCategory }"
-                    :aria-label="
-                        selectedCategoryData?.label ?? 'Select category'
-                    "
+                    :class="{
+                        'task-board__plus--selected': selectedCategory,
+                    }"
+                    :aria-label="selectedCategoryData?.label ?? 'Select label'"
                     :aria-expanded="isCategoryPickerOpen"
-                    @click="isCategoryPickerOpen = !isCategoryPickerOpen"
+                    @click="openCategoryPicker"
                 >
-                    <component
-                        :is="selectedCategoryData?.icon ?? Plus"
-                        :size="22"
-                    />
+                    <span
+                        v-if="
+                            selectedCategory && selectedCategory !== 'general'
+                        "
+                        class="task-label-dot"
+                        :class="`task-label-dot--${selectedCategory}`"
+                    ></span>
+
+                    <Plus v-else :size="22" />
                 </button>
 
                 <div
                     v-if="isCategoryPickerOpen"
                     class="task-board__category-picker"
                 >
-                    <div class="task-board__category-heading">
-                        Select category
-                    </div>
+                    <div class="task-board__category-heading">TASK LABEL</div>
 
-                    <button
-                        v-for="category in categories"
-                        :key="category.id"
-                        type="button"
-                        class="task-board__category-option"
-                        :class="{
-                            'task-board__category-option--active':
-                                selectedCategory === category.id,
-                        }"
-                        @click="selectCategory(category.id)"
-                    >
-                        <component :is="category.icon" :size="17" />
-                        <span>{{ category.label }}</span>
-                    </button>
+                    <div class="task-board__category-list">
+                        <button
+                            v-for="category in categories"
+                            :key="category.id"
+                            type="button"
+                            class="task-board__category-option"
+                            :class="{
+                                'task-board__category-option--active':
+                                    (selectedCategory ?? 'general') ===
+                                    category.id,
+                            }"
+                            :aria-label="category.label"
+                            @click="selectCategory(category.id)"
+                        >
+                            <ListTodo
+                                v-if="category.id === 'general'"
+                                :size="20"
+                                class="task-board__category-icon"
+                            />
+
+                            <span
+                                v-else
+                                class="task-label-dot"
+                                :class="`task-label-dot--${category.id}`"
+                            ></span>
+
+                            <span class="task-board__category-label">
+                                {{ category.label }}
+                            </span>
+
+                            <Check
+                                v-if="
+                                    (selectedCategory ?? 'general') ===
+                                    category.id
+                                "
+                                :size="17"
+                                class="task-board__category-check"
+                            />
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <input
+                ref="taskInputRef"
                 v-model="newTask"
                 type="text"
                 placeholder="Add a new task..."
@@ -369,6 +422,7 @@ function deleteTask(taskId: string) {
                 @move-task="moveTask"
                 @delete-task="deleteTask"
                 @edit-task="editTask"
+                @clear-column="clearColumn"
             />
         </div>
 
@@ -616,6 +670,135 @@ function deleteTask(taskId: string) {
         }
     }
 
+    &__category-general {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 12px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        background: transparent;
+        color: #a9bad2;
+        font-size: 13px;
+        text-align: left;
+        cursor: pointer;
+        transition:
+            background 180ms ease,
+            color 180ms ease;
+
+        &:hover,
+        &--active {
+            background: rgb(105 197 255 / 10%);
+            color: #f1f5f9;
+        }
+    }
+
+    &__category-check {
+        margin-left: auto;
+        color: #69c5ff;
+    }
+
+    &__category-colors {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-top: 12px;
+        padding: 12px 4px 4px;
+        border-top: 1px solid rgb(140 175 255 / 14%);
+    }
+
+    &__category-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 10px;
+    }
+
+    &__category-option {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        min-height: 48px;
+        padding: 10px 12px;
+
+        border: 1px solid transparent;
+        border-radius: 11px;
+        background: transparent;
+        color: #a9bad2;
+
+        text-align: left;
+        cursor: pointer;
+
+        transition:
+            background-color 180ms ease,
+            border-color 180ms ease,
+            color 180ms ease;
+
+        &:hover {
+            background: rgb(105 197 255 / 8%);
+            color: #f1f5f9;
+        }
+
+        &--active {
+            background: rgb(105 197 255 / 12%);
+            color: #f1f5f9;
+        }
+
+        .task-label-dot {
+            width: 23px;
+            height: 23px;
+        }
+    }
+
+    &__category-icon {
+        flex-shrink: 0;
+        color: #9fb4cc;
+    }
+
+    &__category-label {
+        flex: 1;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    &__category-check {
+        flex-shrink: 0;
+        color: #69c5ff;
+    }
+
+    &__color-option {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        aspect-ratio: 1;
+        padding: 5px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        background: transparent;
+        cursor: pointer;
+        transition:
+            background 180ms ease,
+            border-color 180ms ease,
+            transform 180ms ease;
+
+        &:hover {
+            background: rgb(255 255 255 / 7%);
+            transform: translateY(-2px);
+        }
+
+        &--active {
+            border-color: rgb(105 197 255 / 50%);
+            background: rgb(105 197 255 / 10%);
+        }
+
+        .task-label-dot {
+            width: 28px;
+            height: 28px;
+        }
+    }
+
     &__plus {
         display: grid;
         place-items: center;
@@ -689,11 +872,12 @@ function deleteTask(taskId: string) {
 
     &__category-picker {
         position: absolute;
-        top: calc(100% + 14px);
+        top: 100%;
+        margin-top: 0;
         left: 0;
         z-index: 100;
 
-        width: 210px;
+        min-width: 230px;
         padding: 8px;
 
         border: 1px solid rgb(105 197 255 / 35%);
@@ -717,41 +901,6 @@ function deleteTask(taskId: string) {
         font-weight: 600;
         letter-spacing: 0.7px;
         text-transform: uppercase;
-    }
-
-    &__category-option {
-        display: flex;
-        align-items: center;
-        gap: 11px;
-
-        width: 100%;
-        padding: 11px 12px;
-
-        border: 1px solid transparent;
-        border-radius: 9px;
-
-        background: transparent;
-        color: #a9bad2;
-        font-size: 12px;
-        text-align: left;
-        cursor: pointer;
-
-        transition:
-            background 180ms ease,
-            color 180ms ease,
-            border-color 180ms ease;
-
-        svg {
-            flex-shrink: 0;
-            color: #69c5ff;
-        }
-
-        &:hover,
-        &--active {
-            background: rgb(105 197 255 / 10%);
-            border-color: rgb(105 197 255 / 18%);
-            color: #fff;
-        }
     }
 
     @keyframes categoryAppear {
@@ -915,6 +1064,39 @@ function deleteTask(taskId: string) {
 </style>
 
 <style lang="scss">
+.task-label-dot {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 1px solid rgb(255 255 255 / 28%);
+
+    box-shadow:
+        inset 0 1px 2px rgb(255 255 255 / 35%),
+        0 2px 8px rgb(0 0 0 / 20%);
+
+    // High priority — red
+    &--coral {
+        background: linear-gradient(135deg, #ff9292, #e83b50);
+    }
+
+    // Medium priority — yellow
+    &--purple {
+        background: linear-gradient(135deg, #ffe68a, #f3ac28);
+    }
+
+    // Low priority — green
+    &--mint {
+        background: linear-gradient(135deg, #a1f5bd, #23b67d);
+    }
+
+    // Universal — blue
+    &--blue {
+        background: linear-gradient(135deg, #a2e8ff, #3479ff);
+    }
+}
+
 .task-card--chosen {
     cursor: grabbing !important;
     border-color: rgb(105 197 255 / 55%);

@@ -18,6 +18,7 @@ import type { Task, TaskCategory } from '../types/task';
 
 const props = defineProps<{
     task: Task;
+    isColumnClearing?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -38,6 +39,14 @@ const editedTitle = ref('');
 const editInput = ref<HTMLInputElement | null>(null);
 const editButton = ref<HTMLButtonElement | null>(null);
 
+const colorCategories = ['blue', 'mint', 'purple', 'coral'];
+
+const colorLabels: Record<string, string> = {
+    coral: 'High priority',
+    purple: 'Medium priority',
+    mint: 'Low priority',
+    blue: 'Info',
+};
 async function restoreEditFocus() {
     await nextTick();
     editButton.value?.focus();
@@ -50,7 +59,7 @@ onUnmounted(() => {
 });
 
 async function startEditing() {
-    if (isDeleting.value) return;
+    if (isDeleting.value || props.isColumnClearing) return;
 
     editedTitle.value = props.task.title;
     isEditing.value = true;
@@ -89,14 +98,16 @@ function deleteWithAnimation() {
     }, 250);
 }
 
-const categories = {
+const categories: Partial<
+    Record<TaskCategory, { label: string; icon: typeof Palette }>
+> = {
     design: { label: 'UI/UX', icon: Palette },
     development: { label: 'Development', icon: Code2 },
     content: { label: 'Content', icon: FileText },
     planning: { label: 'Planning', icon: Target },
     configuration: { label: 'Configuration', icon: Settings2 },
     general: { label: 'General', icon: ListTodo },
-} satisfies Record<TaskCategory, { label: string; icon: typeof Palette }>;
+};
 </script>
 
 <template>
@@ -105,7 +116,7 @@ const categories = {
         :data-task-id="task.id"
         :class="{
             'task-card--done': task.status === 'done',
-            'task-card--deleting': isDeleting,
+            'task-card--deleting': isDeleting || isColumnClearing,
         }"
     >
         <div class="task-card__leading">
@@ -137,8 +148,22 @@ const categories = {
             </span>
 
             <span class="task-card__category">
-                <component :is="categories[task.category].icon" :size="13" />
-                {{ categories[task.category].label }}
+                <template v-if="colorCategories.includes(task.category)">
+                    <span
+                        class="task-label-dot"
+                        :class="`task-label-dot--${task.category}`"
+                    ></span>
+
+                    <span>{{ colorLabels[task.category] }}</span>
+                </template>
+
+                <template v-else>
+                    <component
+                        :is="categories[task.category]?.icon ?? ListTodo"
+                        :size="13"
+                    />
+                    {{ categories[task.category]?.label ?? 'General' }}
+                </template>
             </span>
         </div>
 
