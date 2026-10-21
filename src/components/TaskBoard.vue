@@ -77,6 +77,45 @@ function loadTasks(): Task[] {
     }
 }
 
+const boardHeight = ref(550);
+const isResizing = ref(false);
+
+let startY = 0;
+let startHeight = 0;
+
+function startResize(event: PointerEvent) {
+    if (event.button !== 0) return;
+
+    isResizing.value = true;
+    startY = event.clientY;
+    startHeight = boardHeight.value;
+
+    window.addEventListener('pointermove', onResize);
+    window.addEventListener('pointerup', stopResize);
+    window.addEventListener('pointercancel', stopResize);
+}
+
+function onResize(event: PointerEvent) {
+    if (!isResizing.value) return;
+
+    const difference = event.clientY - startY;
+
+    boardHeight.value = Math.max(
+        350,
+        Math.min(window.innerHeight * 0.9, startHeight + difference),
+    );
+}
+
+function stopResize() {
+    isResizing.value = false;
+
+    window.removeEventListener('pointermove', onResize);
+    window.removeEventListener('pointerup', stopResize);
+    window.removeEventListener('pointercancel', stopResize);
+}
+
+onUnmounted(stopResize);
+
 const tasks = ref<Task[]>(loadTasks());
 
 watch(
@@ -233,7 +272,7 @@ function deleteTask(taskId: string) {
 </script>
 
 <template>
-    <div class="task-board">
+    <div class="task-board" :style="{ height: `${boardHeight}px` }">
         <form class="task-board__input" @submit.prevent="addTask">
             <div ref="categoryWrapper" class="task-board__category-wrapper">
                 <button
@@ -316,6 +355,10 @@ function deleteTask(taskId: string) {
                 Drag & drop to change status
             </span>
         </footer>
+        <div class="task-board__resize-handle" @pointerdown="startResize">
+            <span></span>
+            <span></span>
+        </div>
     </div>
 </template>
 
@@ -323,11 +366,20 @@ function deleteTask(taskId: string) {
 .task-board {
     position: relative;
     isolation: isolate;
-    overflow: clip;
+    overflow: hidden;
 
     --column-height: 390px;
 
     width: min(100%, 850px);
+    height: 550px;
+    min-height: 350px;
+    max-height: 90vh;
+
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+
     padding: 20px;
 
     border: 1px solid transparent;
@@ -697,10 +749,11 @@ function deleteTask(taskId: string) {
         grid-template-rows: minmax(0, 1fr);
         gap: 12px;
 
+        flex: 1;
         min-height: 0;
 
         > * {
-            height: var(--column-height);
+            height: 100%;
             min-height: 0;
             box-sizing: border-box;
         }
@@ -711,9 +764,11 @@ function deleteTask(taskId: string) {
         justify-content: space-between;
         gap: 12px;
         margin-top: 20px;
+        flex-shrink: 0;
 
         color: #8192a9;
         font-size: 11px;
+        padding-right: 38px;
 
         &-item {
             display: inline-flex;
@@ -779,6 +834,52 @@ function deleteTask(taskId: string) {
 
         footer {
             padding: 10px;
+        }
+    }
+
+    &__resize-handle {
+        position: absolute;
+        right: 10px;
+        bottom: 7px;
+        width: 20px;
+        height: 20px;
+        z-index: 20;
+
+        cursor: pointer;
+        touch-action: none;
+        user-select: none;
+
+        display: grid;
+        place-items: center;
+
+        &::after {
+            content: '';
+            width: 3.5px;
+            height: 3.5px;
+            border-radius: 50%;
+
+            background: #65e5bc;
+
+            box-shadow:
+                9px 0 0 #65e5bc,
+                9px -9px 0 #65e5bc;
+
+            opacity: 0.55;
+
+            transition:
+                opacity 200ms ease,
+                filter 200ms ease,
+                transform 200ms ease;
+        }
+
+        &:hover::after {
+            opacity: 1;
+            filter: drop-shadow(0 0 4px rgb(101 229 188 / 65%));
+            transform: scale(1.1);
+        }
+
+        span {
+            display: none;
         }
     }
 }
