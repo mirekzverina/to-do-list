@@ -177,25 +177,22 @@ const icons = {
 
                 <h2>{{ column.title }}</h2>
 
-                <button
-                    type="button"
-                    class="task-column__count"
-                    :disabled="columnTasks.length === 0 || isClearing"
-                    :aria-label="`Delete all tasks in ${column.title}`"
-                    title="Delete all tasks"
-                    @click="clearColumn"
-                >
-                    <span class="task-column__count-number">
+                <div class="task-column__header-actions">
+                    <span class="task-column__count">
                         {{ columnTasks.length }}
                     </span>
 
-                    <Trash2
-                        class="task-column__count-trash"
-                        :size="13"
-                        :stroke-width="2"
-                        aria-hidden="true"
-                    />
-                </button>
+                    <button
+                        type="button"
+                        class="task-column__clear"
+                        :disabled="columnTasks.length === 0 || isClearing"
+                        :aria-label="`Clear ${props.column.id} tasks`"
+                        title="Clear all tasks"
+                        @click="clearColumn"
+                    >
+                        <Trash2 :size="16" :stroke-width="2" />
+                    </button>
+                </div>
             </div>
 
             <component
@@ -480,68 +477,68 @@ const icons = {
         }
     }
 
-    &__count {
-        position: relative;
+    &__header-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    &__count,
+    &__clear {
         display: grid;
         place-items: center;
 
-        min-width: 26px;
+        width: 26px;
         height: 26px;
-        padding: 0 7px;
+        flex-shrink: 0;
+        padding: 0;
 
-        border: 0;
-        border-radius: 20px;
+        border: 1px solid transparent;
+        border-radius: 50%;
+        background: rgb(255 255 255 / 7%);
+    }
 
-        background: rgb(255 255 255 / 9%);
-        color: #d0dceb;
-
-        font-family: inherit;
+    &__count {
+        color: #a9bad0;
         font-size: 11px;
+        font-weight: 500;
         line-height: 1;
+    }
 
+    &__clear {
+        color: #8295ae;
         cursor: pointer;
 
         transition:
-            background 200ms ease,
+            background-color 200ms ease,
+            border-color 200ms ease,
             color 200ms ease,
-            box-shadow 200ms ease;
+            box-shadow 200ms ease,
+            transform 200ms ease;
 
-        &-number,
-        &-trash {
-            grid-area: 1 / 1;
-            transition:
-                opacity 180ms ease,
-                transform 180ms ease;
+        &:hover:not(:disabled) {
+            background: rgb(255 90 105 / 12%);
+            border-color: rgb(255 110 125 / 20%);
+            color: #ff6b7b;
+
+            box-shadow: 0 0 12px rgb(255 85 105 / 10%);
+
+            transform: scale(1.05);
         }
 
-        &-trash {
-            opacity: 0;
-            color: #ff8792;
-            transform: scale(0.7);
+        &:active:not(:disabled) {
+            transform: scale(0.96);
         }
 
-        &:not(:disabled):is(:hover, :focus-visible) {
-            background: rgb(255 85 105 / 17%);
-            box-shadow: 0 0 12px rgb(255 85 105 / 12%);
-
-            .task-column__count-number {
-                opacity: 0;
-                transform: scale(0.7);
-            }
-
-            .task-column__count-trash {
-                opacity: 1;
-                transform: scale(1);
-            }
+        &:disabled {
+            opacity: 0.3;
+            cursor: default;
         }
 
         &:focus-visible {
             outline: 2px solid #ff8792;
             outline-offset: 3px;
-        }
-
-        &:disabled {
-            cursor: default;
         }
     }
 }
