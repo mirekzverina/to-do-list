@@ -21,6 +21,32 @@ textarea,
 html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    scrollbar-gutter: stable;
+}
+
+// scroll bar
+html {
+    scrollbar-gutter: stable both-edges;
+    scrollbar-width: thin;
+    scrollbar-color: #17466b #07182b;
+}
+
+/* Chrome, Edge, Safari */
+html::-webkit-scrollbar {
+    width: 7px;
+}
+
+html::-webkit-scrollbar-track {
+    background: #07182b;
+}
+
+html::-webkit-scrollbar-thumb {
+    background: #17466b;
+    border-radius: 999px;
+}
+
+html::-webkit-scrollbar-thumb:hover {
+    background: #286b9a;
 }
 
 body {

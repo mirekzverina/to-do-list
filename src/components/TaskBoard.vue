@@ -79,16 +79,24 @@ function loadTasks(): Task[] {
 
 const boardHeight = ref(550);
 const isResizing = ref(false);
+const boardRef = ref<HTMLElement | null>(null);
 
 let startY = 0;
 let startHeight = 0;
+let startBottom = 0;
 
 function startResize(event: PointerEvent) {
-    if (event.button !== 0) return;
+    if (event.button !== 0 || !boardRef.value) return;
+
+    event.preventDefault();
+
+    startBottom = boardRef.value.getBoundingClientRect().bottom;
 
     isResizing.value = true;
     startY = event.clientY;
     startHeight = boardHeight.value;
+
+    document.body.style.cursor = 'pointer';
 
     window.addEventListener('pointermove', onResize);
     window.addEventListener('pointerup', stopResize);
@@ -96,18 +104,38 @@ function startResize(event: PointerEvent) {
 }
 
 function onResize(event: PointerEvent) {
-    if (!isResizing.value) return;
+    if (!isResizing.value || !boardRef.value) return;
 
-    const difference = event.clientY - startY;
+    const targetBottom = startBottom + (event.clientY - startY);
 
-    boardHeight.value = Math.max(
-        350,
-        Math.min(window.innerHeight * 0.9, startHeight + difference),
+    const board = boardRef.value;
+
+    let low = 350;
+    let high = Math.max(
+        boardHeight.value + Math.abs(event.clientY - startY) * 3 + 500,
+        1500,
     );
-}
 
+    for (let i = 0; i < 16; i++) {
+        const mid = (low + high) / 2;
+
+        board.style.height = `${mid}px`;
+
+        const actualBottom = board.getBoundingClientRect().bottom;
+
+        if (actualBottom < targetBottom) {
+            low = mid;
+        } else {
+            high = mid;
+        }
+    }
+
+    boardHeight.value = Math.max(350, (low + high) / 2);
+}
 function stopResize() {
     isResizing.value = false;
+
+    document.body.style.cursor = '';
 
     window.removeEventListener('pointermove', onResize);
     window.removeEventListener('pointerup', stopResize);
@@ -272,7 +300,11 @@ function deleteTask(taskId: string) {
 </script>
 
 <template>
-    <div class="task-board" :style="{ height: `${boardHeight}px` }">
+    <div
+        ref="boardRef"
+        class="task-board"
+        :style="{ height: `${boardHeight}px` }"
+    >
         <form class="task-board__input" @submit.prevent="addTask">
             <div ref="categoryWrapper" class="task-board__category-wrapper">
                 <button
@@ -373,7 +405,6 @@ function deleteTask(taskId: string) {
     width: min(100%, 850px);
     height: 550px;
     min-height: 350px;
-    max-height: 90vh;
 
     box-sizing: border-box;
 
